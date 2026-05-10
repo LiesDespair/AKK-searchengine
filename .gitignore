@@ -6,3 +6,9 @@ venv/
 .venv/
 env/
 ENV/
+
+# Sample pages
+data/
+
+# Index files
+output/
