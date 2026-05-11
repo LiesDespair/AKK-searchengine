@@ -1,9 +1,30 @@
-import json
-import os
+"""
+UTILITY: Text Transformation & Parsing
+--------------------------------------
+PURPOSE:
+Provides the 'Text Transformation' logic required to turn raw HTML into
+searchable tokens.
+
+TECHNICAL SPECIFICATIONS:
+- Tokenization: Alphanumeric sequences only ([a-zA-Z0-9]+).
+- Stemming: Porter Stemmer (nltk) for improved recall.
+- Importance Flagging: Identifies tokens within <title>, <h1>-<h3>, <b>,
+  and <strong> tags.
+- Postings Format: { token: [ (doc_id, tf, [positions], importance), ... ] }
+
+NOTES:
+- Silences MarkupResemblesLocatorWarning and XMLParsedAsHTMLWarning to
+  handle the 'broken/missing HTML' in the UCI corpus.
+"""
+
 import re
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning, XMLParsedAsHTMLWarning
 from nltk.stem import PorterStemmer
 stemmer = PorterStemmer()
+import warnings
+
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 def process_content(html_content):
     soup = BeautifulSoup(html_content, 'lxml')
@@ -12,23 +33,23 @@ def process_content(html_content):
     important_tags = ['title', 'h1', 'h2', 'h3', 'b', 'strong']
     important_stems = set()
     for tag in soup.find_all(important_tags):
-        for token in re.findall(r'[a-zA-Z0-9]+', tag.get_text()):
+        for token in re.findall(r'[a-zA-Z0-9]+', tag.get_text().lower()):
             important_stems.add(stemmer.stem(token))
 
     #pass over entire document
     all_tokens = re.findall(r'[a-zA-Z0-9]+', soup.get_text().lower())
 
-    #stem and count
-    token_counts = {}
-    for token in all_tokens:
+    #stem -> [term_freq, [positions in json], is_important]
+    token_stats = {}
+    for idx, token in enumerate(all_tokens):
         stemmed = stemmer.stem(token)
-        if stemmed not in token_counts:
+        if stemmed not in token_stats:
             is_important = 1 if stemmed in important_stems else 0
-            token_counts[stemmed] = [1, is_important]
+            token_stats[stemmed] = [1, [idx], is_important]
         else:
-            if token in important_stems:
-                token_counts[stemmed][1] = 1
+            if stemmed in important_stems:
+                token_stats[stemmed][2] = 1  # Make important
+            token_stats[stemmed][0] += 1  # Increment TF
+            token_stats[stemmed][1].append(idx)  # Add position
 
-            token_counts[stemmed][0] += 1
-
-    return token_counts
+    return token_stats
