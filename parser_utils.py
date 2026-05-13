@@ -20,12 +20,12 @@ NOTES:
 import re
 from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning, XMLParsedAsHTMLWarning
 from nltk.stem import PorterStemmer
-stemmer = PorterStemmer()
 import warnings
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
+stemmer = PorterStemmer()
 def process_content(html_content):
     soup = BeautifulSoup(html_content, 'lxml')
 
@@ -40,16 +40,17 @@ def process_content(html_content):
     all_tokens = re.findall(r'[a-zA-Z0-9]+', soup.get_text().lower())
 
     #stem -> [term_freq, [positions in json], is_important]
-    token_stats = {}
+    stem_stats = {}
     for idx, token in enumerate(all_tokens):
         stemmed = stemmer.stem(token)
-        if stemmed not in token_stats:
+        if stemmed not in stem_stats:
             is_important = 1 if stemmed in important_stems else 0
-            token_stats[stemmed] = [1, [idx], is_important]
+            stem_stats[stemmed] = [1, [idx], is_important]
         else:
             if stemmed in important_stems:
-                token_stats[stemmed][2] = 1  # Make important
-            token_stats[stemmed][0] += 1  # Increment TF
-            token_stats[stemmed][1].append(idx)  # Add position
+                stem_stats[stemmed][2] = 1  # Make important
+            stem_stats[stemmed][0] += 1  # Increment TF
+            stem_stats[stemmed][1].append(idx)  # Add position
 
-    return token_stats
+    return stem_stats
+
