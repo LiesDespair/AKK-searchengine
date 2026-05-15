@@ -26,6 +26,13 @@ warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 stemmer = PorterStemmer()
+
+stem_cache = {}
+def get_stem(token):
+    if token not in stem_cache:
+        stem_cache[token] = stemmer.stem(token)
+    return stem_cache[token]
+
 def process_content(html_content):
     soup = BeautifulSoup(html_content, 'lxml')
 
@@ -34,7 +41,7 @@ def process_content(html_content):
     important_stems = set()
     for tag in soup.find_all(important_tags):
         for token in re.findall(r'[a-zA-Z0-9]+', tag.get_text().lower()):
-            important_stems.add(stemmer.stem(token))
+            important_stems.add(get_stem(token))
 
     #pass over entire document
     all_tokens = re.findall(r'[a-zA-Z0-9]+', soup.get_text().lower())
@@ -42,7 +49,7 @@ def process_content(html_content):
     #stem -> [term_freq, [positions in json], is_important]
     stem_stats = {}
     for idx, token in enumerate(all_tokens):
-        stemmed = stemmer.stem(token)
+        stemmed = get_stem(token)
         if stemmed not in stem_stats:
             is_important = 1 if stemmed in important_stems else 0
             stem_stats[stemmed] = [1, [idx], is_important]
