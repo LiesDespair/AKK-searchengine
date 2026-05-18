@@ -78,6 +78,7 @@ for root, dirs, files in os.walk(data_dir):
                 unique_tokens_registry.update(stats.keys())
 
                 #importance is stored as 0/1 for future mathematical operations; it is NOT stored as T/F
+                #inverted index skeleton: token -> (docId, term_freq, positions, importance)
                 for token, (term_freq, positions, importance) in stats.items():
                     inverted_index[token].append((doc_id, term_freq, positions, importance))
 
